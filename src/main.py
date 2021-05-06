@@ -7,10 +7,10 @@ import sys
 import cv2
 from edge_impulse_linux.image import ImageImpulseRunner
 
-productUID = "com.blues.bsatrom:pool_tank_monitor"
+productUID = "<com.blues.your_name:your_project>"
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-modelfile = os.path.join(dir_path, '../model/pressure-model.eim')
+modelfile = os.path.join(dir_path, '../model/model.eim')
 print(f'Using model at {modelfile}')
 
 print("Connecting to Notecard...")
@@ -56,15 +56,9 @@ while True:
   with ImageImpulseRunner(modelfile) as runner:
     try:
       model_info = runner.init()
-      print('Loaded runner for "' + model_info['project']['owner'] + ' / ' + model_info['project']['name'] + '"')
+      print('Loaded runner for "' + model_info['project']['owner'] + ' / ' + model_info['project']['name'] + ' (v' + str(model_info['project']['deploy_version']) + ')"')
       labels = model_info['model_parameters']['labels']
 
-      #port_ids = get_webcams()
-      #if len(port_ids) == 0:
-      #  raise Exception('Cannot find any webcams')
-      #if len(port_ids)> 1:
-      #  raise Exception("Multiple cameras found. Add the camera port ID as a second argument to use to this script")
-      #videoCaptureDeviceId = int(port_ids[0])
       videoCaptureDeviceId = 0
 
       camera = cv2.VideoCapture(videoCaptureDeviceId)
@@ -89,23 +83,24 @@ while True:
         next_frame = now() + 500
         inference_count += 1
 
-        if inference_count == 10:
-          high_score = 0
-          # print('classification runner response', res)
+        # print('classification runner response\n', sorted(res['result']['classification'].items(), key=lambda x:x[1], reverse=True))
+        if inference_count == 5:
+          inference_count = 0
+          print('classification runner response', res['result']['classification'])
 
           if "classification" in res["result"].keys():
             req = {"req": "note.add"}
             req["sync"] = True
 
-            noteBody = {"inference_time": res['timing']['dsp'] + res['timing']['classification']}
+            note_body = {"inference_time": res['timing']['dsp'] + res['timing']['classification']}
             print('Result (%d ms.) ' % (res['timing']['dsp'] + res['timing']['classification']), end='')
             print('', flush=True)
 
             sorted_items = sorted(res['result']['classification'].items(), key=lambda x:x[1], reverse=True)
             inferred_state = sorted_items[0][0]
-            noteBody["tank-state"] = inferred_state
-            noteBody["classification"] = res['result']['classification']
-            req["body"] = noteBody
+            note_body["tank-state"] = inferred_state
+            note_body["classification"] = res['result']['classification']
+            req["body"] = note_body
 
             card.Transaction(req)
 
