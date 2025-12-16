@@ -1,5 +1,5 @@
 python-periphery==2.0.1
-filelock==3.0.12
+filelock==3.20.1
 note-python==1.2.1
 websockets==9.1
 numpy>=1.19
